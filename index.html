@@ -2,64 +2,144 @@
 
 <head>
 
+<meta charset="utf-8" />
+<title>RegExp tester</title>
+
+<style>
+
+body > * {
+  box-sizing: border-box;
+}
+
+main {
+  padding: 20px;
+  background-color: lightblue;
+  border-radius: 3px;
+  width: 400px;
+
+  margin: 20vh auto 0;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 3px;
+  margin: 10px 0;
+  border: none;
+  display: block;
+}
+
+input:first-child {
+  margin: 0 0 10px;
+}
+
+input:last-child {
+  margin: 10px 0 0;
+}
+
+input.small {
+  width: 24%;
+  float: left;
+  margin-left: 1%;
+}
+
+input.medium {
+  width: 75%;
+  float: left;
+}
+
+button {
+  display: block;
+  padding: 10px;
+  border-radius: 3px;
+  border: #aaa;
+  background-color: #efefef;
+  width: 100%;
+  margin: 0 0 20px;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<button type="button" onclick="discardParams()">Reset</button>
+<main>
+  <button type="button" onclick="discardParams()">Reset</button>
 
-<input type="text" placeholder="Type RegExp" id="regex" oninput="saveParam('reg', this.value)">
-<input type="text" placeholder="Type flags" id="flags" oninput="saveParam('flags', this.value)">
-<input type="text" placeholder="Type string" id="str" oninput="saveParam('str', this.value)">
+  <input type="text" placeholder="Type RegExp" id="regex" class="medium" oninput="saveParam('reg', this.value)">
+  <input type="text" placeholder="Type flag" id="flag" class="small" oninput="saveParam('flag', this.value)">
+  <input type="text" placeholder="Type string" id="str" oninput="saveParam('str', this.value)">
 
-<p id="result"></p>
+  <p id="result"></p>
+</main>
 
 <script type="text/javascript">
 
+var defaultParams = {
+  reg: '',
+  flag: '',
+  str: ''
+}
 var params = {}
 
-window.addEventListener('load', function () {
+window.addEventListener('load', getHash)
+
+function getHash () {
   var concatinated = decodeURIComponent(window.location.hash)
 
-  params = concatinated.replace(/^#\?/, '').split('&').filter(a => a.length > 0).reduce((obj, pair) => {
-    obj[pair.split('=')[0]] = pair.split('=')[1]
+  params = Object.assign({}, defaultParams, concatinated.replace(/^#/, '').split(' ').filter(a => a.length > 0).reduce((obj, pair) => {
+    var key = pair.split('=')[0]
+    var value = pair.split('=')[1]
+    if (value !== defaultParams[key]) {
+      obj[key] = value
+    }
     return obj
-  }, {})
+  }, {}))
 
   var regSource = document.getElementById('regex')
-  var flags = document.getElementById('flags')
+  var flag = document.getElementById('flag')
   var strSource = document.getElementById('str')
 
   regSource.value = params.reg || ''
-  flags.value = params.flags || ''
+  flag.value = params.flag || ''
   strSource.value = params.str || ''
 
   test()
-})
+}
 
 function discardParams () {
   window.location.hash = ''
+  getHash()
 }
 
 function saveParam (name, value) {
   params[name] = value
 
   var concatinated = Object.keys(params).reduce((acc, key) => {
-    return acc + key + '=' + params[key] + '&'
-  }, '?')
+    if (params[key] !== defaultParams[key]) {
+      return acc + key + '=' + params[key] + ' '
+    }
+    return acc
+  }, '')
 
-  window.location.hash = encodeURIComponent(concatinated)
+  window.location.hash = concatinated
 
   test()
 }
 
 function test () {
-  var reg = new RegExp(params.reg, params.flags)
+  if (!params.reg || params.reg === '\\') {
+    document.getElementById('result').innerText = 'Pattern empty.'
+    return
+  }
+
+  var reg = new RegExp(params.reg, params.flag)
 
   var passed = reg.test(params.str)
 
   document.getElementById('result').innerText = reg.toString() + '.test(\'' + params.str + '\') => ' + passed
-  + '\nJSON ready: ' + reg.toString().replace(/\\/g, '\\\\').replace(/^\//, '\'').replace(/\/$/, '\'')
+  + '\n\nJSON string: ' + reg.toString().replace(/\\/g, '\\\\').replace(/^\//, '\'').replace(/\/$/, '\'')
 }
 
 </script>
